@@ -42,36 +42,31 @@ podTemplate(
         try {
             // set env variable GOOGLE_APPLICATION_CREDENTIALS for Terraform
             env.GOOGLE_APPLICATION_CREDENTIALS = GOOGLE_APPLICATION_CREDENTIALS
-            stages{
-                stage('Setup') {
-                    container(containerName) {
-                        // checkout code from scm i.e. commits related to the PR
-                        checkout scm
+            stage('Setup') {
+                container(containerName) {
+                    // checkout code from scm i.e. commits related to the PR
+                    checkout scm
 
-                        // Setup gcloud service account access
-                        sh "gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}"
-                        sh "gcloud config set compute/zone ${env.ZONE}"
-                        sh "gcloud config set core/project ${env.PROJECT_ID}"
-                        sh "gcloud config set compute/region ${env.REGION}"
-                    }
+                    // Setup gcloud service account access
+                    sh "gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}"
+                    sh "gcloud config set compute/zone ${env.ZONE}"
+                    sh "gcloud config set core/project ${env.PROJECT_ID}"
+                    sh "gcloud config set compute/region ${env.REGION}"
                 }
-                stage('Process'){
-                    parallel {
-                        stage('Lint') {
-                            container(containerName) {
-                                sh "make lint"
-                            }
+            }
+            stage('Process'){
+                parallel Lint: {
+                        container(containerName) {
+                            sh "make lint"
                         }
-                        stage('Run') {
-                            container(containerName) {
-                                sh """bazel build //... --define cluster=dummy --define repo=gcr.io/${env.PROJECT_ID} \\
-                                    --incompatible_depset_union=false --incompatible_disallow_dict_plus=false  \\
-                                    --incompatible_depset_is_not_iterable=false --incompatible_new_actions_api=false"""
-                                sh "make terraform"
-                                sh 'make create'
-                                sh 'make validate'
-                            }
-                        }
+                }, Run: {
+                    container(containerName) {
+                        sh """bazel build //... --define cluster=dummy --define repo=gcr.io/${env.PROJECT_ID} \\
+                            --incompatible_depset_union=false --incompatible_disallow_dict_plus=false  \\
+                            --incompatible_depset_is_not_iterable=false --incompatible_new_actions_api=false"""
+                        sh "make terraform"
+                        sh 'make create'
+                        sh 'make validate'
                     }
                 }
             }
