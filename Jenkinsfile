@@ -55,7 +55,7 @@ podTemplate(
                 }
             }
             stage('Process'){
-                parallel{
+                parallel {
                     stage('Lint') {
                         container(containerName) {
                             sh "make lint"
