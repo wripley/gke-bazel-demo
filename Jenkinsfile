@@ -54,26 +54,22 @@ podTemplate(
                     sh "gcloud config set compute/region ${env.REGION}"
                 }
             }
-            parallel{
-                stage('Lint') {
-                    container(containerName) {
-                        sh "make lint"
+            stage('Process'){
+                parallel{
+                    stage('Lint') {
+                        container(containerName) {
+                            sh "make lint"
+                        }
                     }
-                }
-                stage('Run') {
-                    container(containerName) {
-                        sh """bazel build //... --define cluster=dummy --define repo=gcr.io/${env.PROJECT_ID} \\
-                            --incompatible_depset_union=false --incompatible_disallow_dict_plus=false  \\
-                            --incompatible_depset_is_not_iterable=false --incompatible_new_actions_api=false"""
-                    }
-                    container(containerName) {
-                        sh "make terraform"
-                    }
-                    container(containerName) {
-                        sh 'make create'
-                    }
-                    container(containerName) {
-                        sh 'make validate'
+                    stage('Run') {
+                        container(containerName) {
+                            sh """bazel build //... --define cluster=dummy --define repo=gcr.io/${env.PROJECT_ID} \\
+                                --incompatible_depset_union=false --incompatible_disallow_dict_plus=false  \\
+                                --incompatible_depset_is_not_iterable=false --incompatible_new_actions_api=false"""
+                            sh "make terraform"
+                            sh 'make create'
+                            sh 'make validate'
+                        }
                     }
                 }
             }
