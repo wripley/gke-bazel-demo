@@ -55,15 +55,15 @@ podTemplate(
                 }
             }
             stage('Process'){
-                parallel Lint: {
+                parallel Build: {
                         container(containerName) {
                             sh "make lint"
+                            sh """bazel build //... --define cluster=dummy --define repo=gcr.io/${env.PROJECT_ID} \\
+                            --incompatible_depset_union=false --incompatible_disallow_dict_plus=false  \\
+                            --incompatible_depset_is_not_iterable=false --incompatible_new_actions_api=false"""
                         }
                 }, Run: {
                     container(containerName) {
-                        sh """bazel build //... --define cluster=dummy --define repo=gcr.io/${env.PROJECT_ID} \\
-                            --incompatible_depset_union=false --incompatible_disallow_dict_plus=false  \\
-                            --incompatible_depset_is_not_iterable=false --incompatible_new_actions_api=false"""
                         sh "make terraform"
                         sh 'make create'
                         sh 'make validate'
